@@ -6,7 +6,7 @@
 // It uses only the Node standard library, needs no network, and writes
 // the same bytes on every run.
 
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,4 +14,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
 mkdirSync(outDir, { recursive: true });
-copyFileSync(join(here, 'entry.png'), join(outDir, 'entry.png'));
+const src = join(here, 'entry.png');
+const dst = join(outDir, 'entry.png');
+copyFileSync(src, dst);
+// Fail loudly instead of shipping a truncated copy: the entry is the
+// PNG byte for byte, so the written file must match the source size.
+if (statSync(dst).size !== statSync(src).size) {
+  throw new Error(`entry.png copy mismatch: wrote ${statSync(dst).size} bytes, source is ${statSync(src).size}`);
+}
